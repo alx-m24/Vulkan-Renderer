@@ -1,0 +1,38 @@
+# Compiled object files
+*.o
+*.obj
+
+# Compiled static and dynamic libraries
+*.a
+*.so
+*.dylib
+*.lib
+*.dll
+
+# Executables
+*.out
+*.exe
+
+# Python venv files
+venv/
+Scripts/venv/
+
+# Profiling stuff
+profiling/
+
+# STB stuff
+include/stb
+
+# CMake generated files
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+build/
+*.cmake
+!CMakeLists.txt
+.cache/
+
+# Precompiled headers
+*.gch
+*.pch
