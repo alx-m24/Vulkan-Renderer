@@ -27,7 +27,6 @@ static std::vector<char> readFile(const std::string &filename)
 	return shaderModule;
 }
 
-
 class ForwardPass : public RenderGraph::RenderPass {
     private: 
         vk::raii::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -84,7 +83,17 @@ class ForwardPass : public RenderGraph::RenderPass {
         void BeginPass([[maybe_unused]] const vk::raii::CommandBuffer& cmd) override {
             ImageResource* backBuffer = writeImages["BackBuffer"];
 
-            vk::ClearValue clearColor = vk::ClearColorValue(1.0f, 0.0f, 0.0f, 1.0f);
+            float time = glfwGetTime();
+
+            float r = glm::sin(time);
+            float g = glm::cos(time);
+            float b = glm::sin(time + glm::pi<float>() / 2.0f);
+
+            r = (r + 1.0f) / 2.0f;
+            g = (g + 1.0f) / 2.0f;
+            b = (b + 1.0f) / 2.0f;
+
+            vk::ClearValue clearColor = vk::ClearColorValue(r, g, b, 1.0f);
 		    vk::RenderingAttachmentInfo attachmentInfo = {
 		        .imageView   = backBuffer->view,
 		        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,

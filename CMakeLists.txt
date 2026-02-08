@@ -21,6 +21,7 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Renderer-Renderer.cpp
     src/Renderer/Renderer-RenderGraph.cpp
     src/stbImplementation/stbImplementation.cpp
+    src/vmaImplementation/vma.cpp
 )
 
 # Precompiled header
@@ -40,6 +41,7 @@ target_link_libraries(${PROJECT_NAME}
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${CMAKE_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_SOURCE_DIR}/third_party
             ${Vulkan_INCLUDE_DIRS}
             ${glfw_SOURCE_DIR}/include
             ${glm_SOURCE_DIR}
@@ -53,6 +55,7 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
+# GLFW
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -64,12 +67,34 @@ FetchContent_MakeAvailable(glfw)
 FetchContent_Declare(
     glm
     GIT_REPOSITORY https://github.com/g-truc/glm.git
-    GIT_TAG 1.0.2
+    GIT_TAG 1.0.3
 )
 FetchContent_MakeAvailable(glm)
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE glfw glm
+)
+
+# --- ExternalProject (for STB, VMA and any other head only library) ---
+include(ExternalProject)
+
+# STB 
+ExternalProject_Add(stb
+    GIT_REPOSITORY https://github.com/nothings/stb.git
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/third_party/stb
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+)
+
+# VMA (Vulkan Memory Allocator)
+ExternalProject_Add(vma
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG v3.3.0
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/third_party/vma
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
 )
 
 # ---- MinGW runtime DLL copy (Windows only) ----

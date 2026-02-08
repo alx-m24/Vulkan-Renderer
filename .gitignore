@@ -20,8 +20,7 @@ Scripts/venv/
 # Profiling stuff
 profiling/
 
-# STB stuff
-include/stb
+third_party/
 
 # CMake generated files
 CMakeFiles/
