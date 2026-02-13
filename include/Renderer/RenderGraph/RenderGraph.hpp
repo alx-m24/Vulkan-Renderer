@@ -196,5 +196,9 @@ namespace RenderGraph {
 
                 return nodes;
             }
+
+            OrderedNodes& getOrderedNodesUnsafe() {
+                return const_cast<OrderedNodes&>(getOrderedNodes().value().get());
+            }
     };
 }

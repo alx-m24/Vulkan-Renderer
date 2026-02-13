@@ -10,6 +10,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(${PROJECT_NAME}
     src/main.cpp
     src/pch.cpp
+    src/Utils.cpp
     src/Renderer/Renderer-core.cpp
     src/Renderer/Renderer-Instance.cpp
     src/Renderer/Renderer-Debugger.cpp
@@ -20,6 +21,7 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Renderer-CommandBuffers.cpp
     src/Renderer/Renderer-Renderer.cpp
     src/Renderer/Renderer-RenderGraph.cpp
+    src/Renderer/Renderer-PipelineDescription.cpp
     src/stbImplementation/stbImplementation.cpp
     src/vmaImplementation/vma.cpp
 )
@@ -37,14 +39,6 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE Vulkan::Vulkan
-)
-
-target_include_directories(${PROJECT_NAME}
-    PRIVATE ${CMAKE_SOURCE_DIR}/include
-    PRIVATE ${CMAKE_SOURCE_DIR}/third_party
-            ${Vulkan_INCLUDE_DIRS}
-            ${glfw_SOURCE_DIR}/include
-            ${glm_SOURCE_DIR}
 )
 
 # ---- FetchContent ----
@@ -75,26 +69,29 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE glfw glm
 )
 
-# --- ExternalProject (for STB, VMA and any other head only library) ---
-include(ExternalProject)
-
-# STB 
-ExternalProject_Add(stb
+# STB
+FetchContent_Declare(
+    stb
     GIT_REPOSITORY https://github.com/nothings/stb.git
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/third_party/stb
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
 )
+FetchContent_MakeAvailable(stb)
 
-# VMA (Vulkan Memory Allocator)
-ExternalProject_Add(vma
+# VMA
+FetchContent_Declare(
+    vma
     GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
     GIT_TAG v3.3.0
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/third_party/vma
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
+)
+FetchContent_MakeAvailable(vma)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE ${CMAKE_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_SOURCE_DIR}/third_party
+            ${Vulkan_INCLUDE_DIRS}
+            ${glfw_SOURCE_DIR}/include
+            ${glm_SOURCE_DIR}
+            ${stb_SOURCE_DIR}
+            ${vma_SOURCE_DIR}/include
 )
 
 # ---- MinGW runtime DLL copy (Windows only) ----

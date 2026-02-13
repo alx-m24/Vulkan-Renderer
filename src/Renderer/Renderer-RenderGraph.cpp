@@ -1,6 +1,8 @@
 #include "pch.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/Pipeline/Pipeline.hpp"
+#include "Renderer/Pipeline/PipelineDescription.hpp"
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph::RenderGraph> renderGraph) {
     m_renderGraph = std::move(renderGraph);
@@ -13,4 +15,19 @@ void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph::RenderGraph> renderGr
             });
 
     m_renderGraph->Compile();
+
+    for (std::unique_ptr<RenderGraph::RenderPass>& pass : m_renderGraph->getOrderedNodesUnsafe()) {
+        for (const PipelineDescription& pipelineDesc : pass->getPipelineDescriptions()) {
+            m_pipelines.emplace_back(std::make_shared<Pipeline>(pipelineDesc.name));
+
+            m_pipelines.back()->pipelineLayout = getPipelineLayout(pipelineDesc);
+            m_pipelines.back()->pipeline = vk::raii::Pipeline(
+                    m_device,
+                    nullptr,
+                    getVulkanPipeline(pipelineDesc, m_pipelines.back()->pipelineLayout).get<vk::GraphicsPipelineCreateInfo>()
+                );
+
+		    pass->pipelines.insert({ pipelineDesc.name, m_pipelines.back()});
+        }
+    }
 }

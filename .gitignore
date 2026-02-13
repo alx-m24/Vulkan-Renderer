@@ -20,6 +20,7 @@ Scripts/venv/
 # Profiling stuff
 profiling/
 
+# Third party libraries
 third_party/
 
 # CMake generated files

@@ -3,8 +3,12 @@
 #include <string>
 #include <vector>
 
+#include "Pipeline/PipelineDescription.hpp"
+#include "Renderer/Shader/Shader.hpp"
+
 // Forward Declarations
 class GLFWwindow;
+class Pipeline;
 namespace RenderGraph { 
     class RenderGraph;
 }
@@ -17,6 +21,12 @@ namespace vk {
         class Context;
         class ExtensionProperties;
     }
+    class PipelineShaderStageCreateInfo;
+    class GraphicsPipelineCreateInfo;
+    class PipelineRenderingCreateInfo;
+
+    template<typename... Ts>
+    class StructureChain;
 }
 
 namespace DeviceExtensions {
@@ -67,6 +77,7 @@ class Renderer {
         std::vector<vk::raii::Semaphore> m_renderFinishedSemaphores;
 
         std::unique_ptr<RenderGraph::RenderGraph> m_renderGraph;
+        std::vector<std::shared_ptr<Pipeline>> m_pipelines;
         
     private:
         uint32_t frameIndex = 0u;
@@ -145,5 +156,11 @@ class Renderer {
         }
 
     private:
+        std::vector<vk::PipelineShaderStageCreateInfo> getShaderStages(GraphicsShader& shader) const;
+        vk::raii::PipelineLayout getPipelineLayout(PipelineDescription desc) const;
+        vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> getVulkanPipeline(PipelineDescription desc, vk::raii::PipelineLayout& layout) const;
+
+    private:
         std::vector<Extensions::Extension> getRequiredExtensions() const;
+
 };

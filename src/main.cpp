@@ -1,8 +1,9 @@
 #include "pch.hpp"
-#include "stb/stb_image.h"
 
 #include "Renderer/Renderer.hpp"
-
+#include "Renderer/Shader/Shader.hpp"
+#include "Renderer/Pipeline/Pipeline.hpp"
+#include "Renderer/Pipeline/PipelineDescription.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 
 static std::vector<char> readFile(const std::string &filename)
@@ -80,20 +81,19 @@ class ForwardPass : public RenderGraph::RenderPass {
         }
 
     public:
+        const std::array<PipelineDescription, 1u> s_pipelines {
+            PipelineDescription{ .name = "Main" }
+        };
+
+        virtual std::span<const PipelineDescription> getPipelineDescriptions() const override {
+            return s_pipelines;
+        }
+
+    public:
         void BeginPass([[maybe_unused]] const vk::raii::CommandBuffer& cmd) override {
             ImageResource* backBuffer = writeImages["BackBuffer"];
 
-            float time = glfwGetTime();
-
-            float r = glm::sin(time);
-            float g = glm::cos(time);
-            float b = glm::sin(time + glm::pi<float>() / 2.0f);
-
-            r = (r + 1.0f) / 2.0f;
-            g = (g + 1.0f) / 2.0f;
-            b = (b + 1.0f) / 2.0f;
-
-            vk::ClearValue clearColor = vk::ClearColorValue(r, g, b, 1.0f);
+            vk::ClearValue clearColor = vk::ClearColorValue(1.0f, 0.0f, 0.0f, 1.0f);
 		    vk::RenderingAttachmentInfo attachmentInfo = {
 		        .imageView   = backBuffer->view,
 		        .imageLayout = vk::ImageLayout::eColorAttachmentOptimal,
@@ -113,6 +113,7 @@ class ForwardPass : public RenderGraph::RenderPass {
             ImageResource* backBuffer = writeImages["BackBuffer"];
 
 		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
+            pipelines.at("Main")->Bind(cmd);
 		    cmd.setViewport(0, 
                     vk::Viewport(0.0f, 0.0f, static_cast<float>(backBuffer->extent.width), static_cast<float>(backBuffer->extent.height), 0.0f, 1.0f));
             cmd.draw(3, 1, 0, 0);
@@ -134,7 +135,7 @@ int main() {
 
         renderer.SetRenderGraph(std::make_unique<RenderGraph::RenderGraph>(std::move(renderGraph)));
     }
-
+    
     while (renderer.isRunning()) {
         renderer.Update();
 
