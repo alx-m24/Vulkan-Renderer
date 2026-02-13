@@ -212,16 +212,7 @@ std::vector<vk::PipelineShaderStageCreateInfo> Renderer::getShaderStages(Graphic
     return shaderStages;
 }
 
-vk::raii::PipelineLayout Renderer::getPipelineLayout([[maybe_unused]] PipelineDescription desc) const {
-    vk::PipelineLayoutCreateInfo layoutInfo {
-        .setLayoutCount = 0,
-        .pushConstantRangeCount = 0,
-    };
-
-    return vk::raii::PipelineLayout(m_device, layoutInfo);
-}
-
-vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> Renderer::getVulkanPipeline(PipelineDescription desc, vk::raii::PipelineLayout& layout) const {
+void Renderer::CreateVulkanPipeline(PipelineDescription desc, vk::raii::Pipeline& pipeline, vk::raii::PipelineLayout& layout) const {
     
     std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = getShaderStages(desc.shader);
 
@@ -290,16 +281,40 @@ vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateIn
             break;
     }
 
-    // TODO
-    vk::PipelineDepthStencilStateCreateInfo depthStencil{};
+    vk::PipelineDepthStencilStateCreateInfo depthStencil {
+        .depthTestEnable       = toVKBool(desc.depthTestEnabled),                      // enable depth testing
+        .depthWriteEnable      = toVKBool(desc.depthWriteEnabled),                      // enable writing to the depth buffer
+        .depthCompareOp        = vk::CompareOp::eLess,          // default: fragments closer to camera pass
+        .depthBoundsTestEnable = vk::False,                     // optional depth bounds test
+        .stencilTestEnable     = vk::False,                     // enable if you need stencil
+        .front                 = {},                            // stencil operations for front faces
+        .back                  = {},                            // stencil operations for back faces
+        .minDepthBounds        = 0.0f,                          // used if depthBoundsTestEnable = true
+        .maxDepthBounds        = 1.0f
+    };
 
     std::vector<vk::DynamicState> dynamicStates = {
 		        vk::DynamicState::eViewport,
 		        vk::DynamicState::eScissor};
+
 	vk::PipelineDynamicStateCreateInfo dynamicState {
         .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), 
         .pDynamicStates = dynamicStates.data()
     };
+
+    std::vector<vk::Format> colorAttachmentFormats;
+    colorAttachmentFormats.reserve(desc.colorAttachments.size());
+
+    for (const ColorAttachmentFormat& format : desc.colorAttachments) {
+        if (format == ColorAttachmentFormat::SWAPCHAIN_FORMAT) colorAttachmentFormats.emplace_back(m_SwapChainSurfaceFormat.format);
+    }
+
+    vk::PipelineLayoutCreateInfo layoutInfo {
+        .setLayoutCount = 0,
+        .pushConstantRangeCount = 0,
+    };
+
+    layout = vk::raii::PipelineLayout(m_device, layoutInfo);
 
 	vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain = {
 	    {.stageCount          = static_cast<uint32_t>(shaderStages.size()),
@@ -309,11 +324,12 @@ vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateIn
 	     .pViewportState      = &viewPortState,
 	     .pRasterizationState = &rasterizer,
 	     .pMultisampleState   = &multiSampling,
+         .pDepthStencilState  = &depthStencil,
 	     .pColorBlendState    = &colorBlending,
 	     .pDynamicState       = &dynamicState,
 	     .layout              = layout,
 	     .renderPass          = nullptr},
-	    {.colorAttachmentCount = 1, .pColorAttachmentFormats = &m_SwapChainSurfaceFormat.format}};
+	    {.colorAttachmentCount = static_cast<uint32_t>(colorAttachmentFormats.size()), .pColorAttachmentFormats = colorAttachmentFormats.data()}};
 
-	return pipelineCreateInfoChain;
+    pipeline = vk::raii::Pipeline(m_device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
 }

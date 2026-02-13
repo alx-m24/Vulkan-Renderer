@@ -20,12 +20,7 @@ void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph::RenderGraph> renderGr
         for (const PipelineDescription& pipelineDesc : pass->getPipelineDescriptions()) {
             m_pipelines.emplace_back(std::make_shared<Pipeline>(pipelineDesc.name));
 
-            m_pipelines.back()->pipelineLayout = getPipelineLayout(pipelineDesc);
-            m_pipelines.back()->pipeline = vk::raii::Pipeline(
-                    m_device,
-                    nullptr,
-                    getVulkanPipeline(pipelineDesc, m_pipelines.back()->pipelineLayout).get<vk::GraphicsPipelineCreateInfo>()
-                );
+            CreateVulkanPipeline(pipelineDesc, m_pipelines.back()->pipeline, m_pipelines.back()->pipelineLayout);
 
 		    pass->pipelines.insert({ pipelineDesc.name, m_pipelines.back()});
         }

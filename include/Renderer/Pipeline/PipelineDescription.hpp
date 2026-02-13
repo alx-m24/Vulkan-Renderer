@@ -33,6 +33,8 @@ struct PipelineDescription {
     GraphicsShader shader {};
     VertexInfo vertexInfo = {};
     Rasterizer rasterizer {};
+    bool depthTestEnabled = true;
+    bool depthWriteEnabled = true;
     SampleCount sampleCount = SampleCount::ONE;
     BlendMode colorBlend = BlendMode::NONE;
     std::vector<ColorAttachmentFormat> colorAttachments {};

@@ -6,83 +6,24 @@
 #include "Renderer/Pipeline/PipelineDescription.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 
-static std::vector<char> readFile(const std::string &filename)
-{
-	std::ifstream file(filename, std::ios::ate | std::ios::binary);
-	if (!file.is_open())
-	{
-		throw std::runtime_error("failed to open file!");
-	}
-	std::vector<char> buffer(file.tellg());
-	file.seekg(0, std::ios::beg);
-	file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-	file.close();
-	return buffer;
-}
-
-[[nodiscard]] vk::raii::ShaderModule createShaderModule(vk::raii::Device& device, const std::vector<char> &code) 
-{
-	vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t *>(code.data())};
-	vk::raii::ShaderModule     shaderModule{device, createInfo};
-
-	return shaderModule;
-}
-
 class ForwardPass : public RenderGraph::RenderPass {
-    private: 
-        vk::raii::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
-        vk::raii::Pipeline graphicsPipeline = VK_NULL_HANDLE;
+    public:
+        ForwardPass() : RenderGraph::RenderPass("ForwardPass", {}, {"BackBuffer"}), shaderModule(std::make_shared<ShaderModule>("shaders/shader.spv")) {}
 
     public:
-        ForwardPass(vk::raii::Device& device, vk::SurfaceFormatKHR swapChainSurfaceFormat) : RenderGraph::RenderPass("ForwardPass", {}, {"BackBuffer"}) {
-            vk::raii::ShaderModule shaderModule = createShaderModule(device, readFile("shaders/shader.spv"));
+        const std::shared_ptr<ShaderModule> shaderModule;
+        const VertexStage vert { .module = shaderModule, .entry = "vertMain" };
+        const FragmentStage frag { .module = shaderModule, .entry = "fragMain" };
 
-		    vk::PipelineShaderStageCreateInfo vertShaderStageInfo{.stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule, .pName = "vertMain"};
-		    vk::PipelineShaderStageCreateInfo fragShaderStageInfo{.stage = vk::ShaderStageFlagBits::eFragment, .module = shaderModule, .pName = "fragMain"};
-		    vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-
-		    vk::PipelineVertexInputStateCreateInfo   vertexInputInfo;
-		    vk::PipelineInputAssemblyStateCreateInfo inputAssembly{.topology = vk::PrimitiveTopology::eTriangleList};
-		    vk::PipelineViewportStateCreateInfo      viewportState{.viewportCount = 1, .scissorCount = 1};
-
-		    vk::PipelineRasterizationStateCreateInfo rasterizer{.depthClampEnable = vk::False, .rasterizerDiscardEnable = vk::False, .polygonMode = vk::PolygonMode::eFill, .cullMode = vk::CullModeFlagBits::eBack, .frontFace = vk::FrontFace::eClockwise, .depthBiasEnable = vk::False, .depthBiasSlopeFactor = 1.0f, .lineWidth = 1.0f};
-
-		    vk::PipelineMultisampleStateCreateInfo multisampling{.rasterizationSamples = vk::SampleCountFlagBits::e1, .sampleShadingEnable = vk::False};
-
-		    vk::PipelineColorBlendAttachmentState colorBlendAttachment{.blendEnable    = vk::False,
-		                                                               .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
-
-		    vk::PipelineColorBlendStateCreateInfo colorBlending{.logicOpEnable = vk::False, .logicOp = vk::LogicOp::eCopy, .attachmentCount = 1, .pAttachments = &colorBlendAttachment};
-
-		    std::vector dynamicStates = {
-		        vk::DynamicState::eViewport,
-		        vk::DynamicState::eScissor};
-		    vk::PipelineDynamicStateCreateInfo dynamicState{.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()), .pDynamicStates = dynamicStates.data()};
-
-		    vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 0, .pushConstantRangeCount = 0};
-
-		    pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
-
-		    vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain = {
-		        {.stageCount          = 2,
-		         .pStages             = shaderStages,
-		         .pVertexInputState   = &vertexInputInfo,
-		         .pInputAssemblyState = &inputAssembly,
-		         .pViewportState      = &viewportState,
-		         .pRasterizationState = &rasterizer,
-		         .pMultisampleState   = &multisampling,
-		         .pColorBlendState    = &colorBlending,
-		         .pDynamicState       = &dynamicState,
-		         .layout              = pipelineLayout,
-		         .renderPass          = nullptr},
-		        {.colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChainSurfaceFormat.format}};
-
-		    graphicsPipeline = vk::raii::Pipeline(device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
-        }
-
-    public:
         const std::array<PipelineDescription, 1u> s_pipelines {
-            PipelineDescription{ .name = "Main" }
+            PipelineDescription{ 
+                .name = "Main",
+                .shader = GraphicsShader(vert, frag),
+                .vertexInfo = {},
+                .rasterizer = Rasterizer { .faceCulling = { .cullFace = CullFace::BACK, .frontFace = FrontFace::CW } },
+                .depthTestEnabled = false, .depthWriteEnabled = false,
+                .colorAttachments = { ColorAttachmentFormat::SWAPCHAIN_FORMAT }
+            }
         };
 
         virtual std::span<const PipelineDescription> getPipelineDescriptions() const override {
@@ -112,8 +53,8 @@ class ForwardPass : public RenderGraph::RenderPass {
         void RunPass([[maybe_unused]] const vk::raii::CommandBuffer& cmd) override {
             ImageResource* backBuffer = writeImages["BackBuffer"];
 
-		    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, *graphicsPipeline);
             pipelines.at("Main")->Bind(cmd);
+
 		    cmd.setViewport(0, 
                     vk::Viewport(0.0f, 0.0f, static_cast<float>(backBuffer->extent.width), static_cast<float>(backBuffer->extent.height), 0.0f, 1.0f));
             cmd.draw(3, 1, 0, 0);
@@ -131,7 +72,7 @@ int main() {
     {
         RenderGraph::RenderGraph renderGraph;
 
-        renderGraph.AddRenderPass<ForwardPass>(renderer.getDevice(), renderer.getSurfaceFormat());
+        renderGraph.AddRenderPass<ForwardPass>();
 
         renderer.SetRenderGraph(std::make_unique<RenderGraph::RenderGraph>(std::move(renderGraph)));
     }

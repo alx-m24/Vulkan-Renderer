@@ -158,7 +158,7 @@ class Renderer {
     private:
         std::vector<vk::PipelineShaderStageCreateInfo> getShaderStages(GraphicsShader& shader) const;
         vk::raii::PipelineLayout getPipelineLayout(PipelineDescription desc) const;
-        vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> getVulkanPipeline(PipelineDescription desc, vk::raii::PipelineLayout& layout) const;
+        void CreateVulkanPipeline(PipelineDescription desc, vk::raii::Pipeline& pipeline, vk::raii::PipelineLayout& layout) const;
 
     private:
         std::vector<Extensions::Extension> getRequiredExtensions() const;

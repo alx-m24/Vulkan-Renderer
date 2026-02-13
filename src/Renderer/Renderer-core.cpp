@@ -3,8 +3,6 @@
 #include "Renderer/Renderer-Exceptions.hpp"
 #include "Utils.hpp"
 
-VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-
 namespace InitialValues {
     constexpr vk::Extent2D windowSize = {
         .width = 800,
@@ -30,8 +28,6 @@ void Renderer::FrameBufferSizeCallback(GLFWwindow *window, int, int) {
 
 Renderer::InitResult Renderer::Init(const std::string& title) {
     InitGLFW(title);
-
-    VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
     try {
         CreateInstance(title);
