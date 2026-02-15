@@ -1,6 +1,7 @@
 #include "pch.hpp"
 #include "Renderer/Renderer.hpp"
 #include "Renderer/Renderer-Exceptions.hpp"
+#include <vma/vk_mem_alloc.h>
 #include "Utils.hpp"
 
 namespace InitialValues {
@@ -38,6 +39,7 @@ Renderer::InitResult Renderer::Init(const std::string& title) {
         CreateCommandPool();
         CreateCommandBuffers();
         CreateSyncObjects();
+        CreateAllocator();
     }
     catch (const CreateInstance_Error& e) {
         DEBUG_PRINT(e.what()); 
@@ -55,6 +57,10 @@ Renderer::InitResult Renderer::Init(const std::string& title) {
         DEBUG_PRINT(e.what()); 
         return InitResult::LOGICAL_DEVICE_FAILED;
     }
+    catch (const CreateAllocatorError& e) {
+        DEBUG_PRINT(e.what()); 
+        return InitResult::ALLOCATOR_FAILED;
+    }
 
     return InitResult::OK;
 }
@@ -65,6 +71,14 @@ void Renderer::Update() {
 
 void Renderer::Shutdown() {
     m_device.waitIdle();
+
+    for (const std::shared_ptr<Buffer>& buffer : m_buffers) {
+        vmaDestroyBuffer(m_allocator, buffer->buffer, buffer->allocation);
+    }
+
+    if (m_allocator) {
+        vmaDestroyAllocator(m_allocator);
+    }
 
     CleanupSwapChain();
 

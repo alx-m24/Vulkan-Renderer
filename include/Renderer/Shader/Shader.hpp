@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <utility>
 
 namespace vk {
     namespace raii {
@@ -75,4 +76,31 @@ class Shader<ShaderUsage::COMPUTE> {
     private:
         ShaderModule computeShader{}; 
 };
+
+inline GraphicsShader make_graphicsShader(const std::filesystem::path& modulePath, std::string vertEntry = "vertMain", std::string fragEntry = "fragMain") {
+    std::shared_ptr<ShaderModule> module = std::make_shared<ShaderModule>(modulePath);
+
+    return GraphicsShader(VertexStage{ .module = module, .entry =vertEntry }, FragmentStage{ .module = module, .entry = fragEntry } );
+}
+
+inline GraphicsShader make_graphicsShader(const std::filesystem::path& vertPath, const std::filesystem::path& fragPath,
+        std::string vertEntry = "vertMain", std::string fragEntry = "fragMain") {
+
+    if (vertPath == fragPath) {
+        return make_graphicsShader(vertPath, vertEntry, fragEntry);
+    }
+
+    std::shared_ptr<ShaderModule> vertModule = std::make_shared<ShaderModule>(vertPath);
+    std::shared_ptr<ShaderModule> fragModule = std::make_shared<ShaderModule>(fragPath);
+
+    return GraphicsShader(VertexStage{ .module = vertModule, .entry =vertEntry }, FragmentStage{ .module = fragModule, .entry = fragEntry } );
+}
+
+template<ShaderUsage U, typename... Args>
+inline Shader<U> make_shader(Args&&... args) {
+    if constexpr (U == ShaderUsage::GRAPHICS) return make_graphicsShader(std::forward<Args>(args)...);
+    if constexpr (U == ShaderUsage::COMPUTE) return {}; // TODO
+
+    return {};
+}
 

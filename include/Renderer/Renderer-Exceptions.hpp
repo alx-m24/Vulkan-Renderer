@@ -29,3 +29,8 @@ class PipelineCreation_Error : public std::runtime_error {
     public:
         PipelineCreation_Error(const std::string& msg) : std::runtime_error(msg) {}
 };
+
+class CreateAllocatorError : public std::runtime_error {
+    public:
+        CreateAllocatorError(const std::string& msg) : std::runtime_error(msg) {}
+};

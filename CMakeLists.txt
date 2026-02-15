@@ -22,6 +22,8 @@ add_executable(${PROJECT_NAME}
     src/Renderer/Renderer-Renderer.cpp
     src/Renderer/Renderer-RenderGraph.cpp
     src/Renderer/Renderer-PipelineDescription.cpp
+    src/Renderer/Renderer-Allocator.cpp
+    src/Renderer/Buffer/Buffer.cpp
     src/stbImplementation/stbImplementation.cpp
     src/vmaImplementation/vma.cpp
 )

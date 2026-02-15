@@ -1,12 +1,15 @@
 #pragma once
 
 #include "ImageResource.hpp"
+#include "Renderer/Buffer/BufferDescription.hpp"
 #include "Renderer/Pipeline/PipelineDescription.hpp"
 
 #include <unordered_map>
 
 // Forward declaration
+class Renderer;
 class Pipeline;
+class Buffer;
 
 namespace RenderGraph {
     class RenderPass {
@@ -24,6 +27,9 @@ namespace RenderGraph {
             std::unordered_map<std::string, ImageResource*> writeImages;
 
             std::unordered_map<std::string, std::shared_ptr<const Pipeline>> pipelines;
+            std::unordered_map<std::string, std::shared_ptr<const Buffer>> buffers;
+
+            Renderer* renderer;
 
         public:
             RenderPass(std::string&& name, const std::vector<std::string>& reads, const std::vector<std::string>& writes)
@@ -34,6 +40,7 @@ namespace RenderGraph {
 
         public:
             virtual std::span<const PipelineDescription> getPipelineDescriptions() const = 0;
+            virtual std::span<const BufferDescription> getBufferDescriptions() const = 0;
 
         public:
             virtual void BeginPass(const vk::raii::CommandBuffer& cmd) = 0;
